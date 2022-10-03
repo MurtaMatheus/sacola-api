@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -66,22 +67,48 @@ public class SacolaServiceImpl implements SacolaService {
 
         List<Item> itensSacola = sacola.getItens();
 
-        if (itensSacola.isEmpty() && inserirItem.getQuantidade() > 0) {
-            itensSacola.add(inserirItem);
+        if (itensSacola.isEmpty()) {
+            if (inserirItem.getProduto().getDisponivel()) {
+                itensSacola.add(inserirItem);
+            } else {
+                throw new RuntimeException("Produto Indisponível");
+            }
+
+
         } else {
             Restaurante restauranteAtualSacola = itensSacola.get(0).getProduto().getRestaurante();
             Restaurante restauranteProduto = inserirItem.getProduto().getRestaurante();
 
-            if (restauranteProduto.equals(restauranteAtualSacola) && inserirItem.getQuantidade() > 0) {
-                itensSacola.add(inserirItem);
+            if (restauranteProduto.equals(restauranteAtualSacola)) {
+                if (inserirItem.getProduto().getDisponivel()) {
+                    itensSacola.add(inserirItem);
+                } else {
+                    throw new RuntimeException("Produto Indisponível");
+                }
             } else {
                 throw new RuntimeException("Você não pode inserir produtos na mesma sacola de restaurantes diferentes.");
             }
 
         }
 
-        sacolaRepository.save(sacola);
 
-        return itemRepository.save(inserirItem);
+        List<Double> valorItens = new ArrayList<>();
+
+        for (Item itemSacola : itensSacola) {
+            double valorTotalItem = itemSacola.getProduto().getValorUnitario() * itemSacola.getQuantidade();
+            valorItens.add(valorTotalItem);
+
+        }
+
+        Double valorTotalSacola = 0.0;
+        for (Double valorCadaItem : valorItens) {
+            valorTotalSacola += valorCadaItem;
+        }
+
+
+        sacola.setValorTotal(valorTotalSacola);
+
+        sacolaRepository.save(sacola);
+        return inserirItem;
     }
 }
